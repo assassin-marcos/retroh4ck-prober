@@ -1684,7 +1684,7 @@ dependencies = [
  "hex",
  "hyper 0.14.32",
  "md-5",
- "rand 0.8.6",
+ "rand 0.9.4",
  "regex",
  "reqwest",
  "serde",
