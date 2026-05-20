@@ -82,7 +82,7 @@ jobs:
 
       - name: Build (cross-compile via houseabsolute/actions-rust-cross)
         if: matrix.cross == true
-        uses: houseabsolute/actions-rust-cross@v0
+        uses: houseabsolute/actions-rust-cross@v1
         with:
           command: build
           target: ${{ matrix.target }}
