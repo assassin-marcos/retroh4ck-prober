@@ -1,7 +1,7 @@
 //! retroh4ck-prober — Rust async path prober with TLS-fingerprint impersonation.
 //!
-//! Drop-in JSONL replacement for ProjectDiscovery httpx in RetroH4ck
-//! Stage 15. See SPEC.md for the authoritative interface contract.
+//! Drop-in JSONL replacement for ProjectDiscovery httpx
+//! the consumer pipeline. See README.md + USAGE.md for the interface contract.
 
 mod cf;
 mod cli;

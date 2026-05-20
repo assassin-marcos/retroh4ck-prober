@@ -2,7 +2,7 @@
 //! HTML-entity encoding (httpx-parity), elapsed time helpers.
 //!
 //! The encoding rules here are the **single critical compatibility surface**
-//! with `httpx_probe_engine.py:1480+` — production runs `html.unescape()`
+//! with the consumer parser — downstream typically runs `html.unescape()`
 //! before regex matching, so we must encode the same set of characters in
 //! the same order.
 

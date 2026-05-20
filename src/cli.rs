@@ -53,7 +53,7 @@ impl OnOff {
     name = "retroh4ck-prober",
     version = env!("CARGO_PKG_VERSION"),
     about = "Async directory/path prober with TLS-fingerprint impersonation (drop-in httpx replacement)",
-    long_about = "retroh4ck-prober — Rust async path prober for RetroH4ck Stage 15.\n\
+    long_about = "retroh4ck-prober — Rust async path prober for web-prober pipelines.\n\
                   Drop-in JSONL replacement for ProjectDiscovery httpx with TLS \
                   impersonation (wreq) + reqwest fallback."
 )]

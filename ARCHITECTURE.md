@@ -99,12 +99,12 @@ Two rotation axes, intentionally on different cadences:
 
 ## JSONL schema rationale
 
-The output is a stream of JSON objects, one per line, with field names that match ProjectDiscovery `httpx` exactly. This was a hard requirement: the production `httpx_probe_engine.py:_parse()` consumer is on the other side of the pipe and we did not want to maintain a fork of its parser.
+The output is a stream of JSON objects, one per line, with field names that match ProjectDiscovery `httpx` exactly. This was a hard requirement: the production consumer parser already in your pipeline ingests our JSONL without changes.
 
 Specific choices worth flagging:
 
 - **`status_code` not `status`.** httpx uses `status_code`. Some Rust HTTP libraries default to `status`. We override the field name via serde to match httpx.
-- **`body_preview` is HTML-entity-encoded.** httpx's `-body-preview` flag emits HTML-escaped bytes (`"` -> `&#34;`, `<` -> `&lt;`, etc.). The production parser calls `html.unescape()` on it. If we shipped raw bytes, validators that anchor on raw quote characters would misfire. Encoding is single-pass over the captured slice.
+- **`body_preview` is HTML-entity-encoded.** httpx's `-body-preview` flag emits HTML-escaped bytes (`"` -> `&#34;`, `<` -> `&lt;`, etc.). Downstream parsers typically call `html.unescape()` on it. If we shipped raw bytes, validators that anchor on raw quote characters would misfire. Encoding is single-pass over the captured slice.
 - **`snippet_md5` is MD5 of `body[:200]`.** Cheap, deterministic, and matches what the downstream dedup layer expects.
 - **`tls_impersonation` is explicit.** Operators audit which client produced which finding — `chrome-131` vs `fallback:vanilla` is the difference between "Cloudflare let it through" and "Cloudflare let it through only after we dropped impersonation".
 - **`tech` is reserved.** Always emitted as `[]`. Tech-stack fingerprinting is downstream's job.

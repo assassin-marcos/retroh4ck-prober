@@ -1,16 +1,15 @@
 //! Async buffered JSONL writer + `ProbeRecord` struct.
 //!
-//! Field names MUST match what `httpx_probe_engine.py:_parse()` reads — see
+//! Field names MUST match what the consumer parser reads — see
 //! SPEC §"Output JSONL — must match httpx exactly". In particular:
 //!
 //! - `status_code` (int) — NOT `status`
 //! - `input` — original host (scheme+netloc)
 //! - `content_type` — NOT `mime`
 //! - `body_preview` — NOT `body`
-//! - `webserver` — production parser reads `j.get("webserver")` (matches the
-//!   ProjectDiscovery httpx field name). We emit BOTH `server` (per SPEC table)
-//!   and `webserver` (alias for parser compatibility) so consumers reading
-//!   either field name see the same value.
+//! - `webserver` — ProjectDiscovery httpx emits both `server` and `webserver`
+//!   keys; some consumers read one, some the other. We emit BOTH so either
+//!   reader sees the same value.
 
 use serde::Serialize;
 use std::path::Path;
@@ -43,7 +42,7 @@ pub struct ProbeRecord {
     /// `Server` header — SPEC §"Output JSONL" field name.
     pub server: String,
     /// `Server` header — alias matching ProjectDiscovery httpx field name.
-    /// Production `httpx_probe_engine.py:_parse()` reads `j.get("webserver")`.
+    /// Production the consumer parser reads `j.get("webserver")`.
     pub webserver: String,
     /// First N bytes of body, HTML-entity-encoded.
     pub body_preview: String,
