@@ -1,0 +1,138 @@
+name: Bench
+
+# Manual-trigger only. We deliberately do NOT run this on a schedule because
+# any networked smoke test would point at third-party hosts; on-demand keeps
+# behaviour explicit. The job runs an in-process mock server (hyper) so no
+# external traffic is generated.
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Optional run notes (shown in job summary)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  BINARY_NAME: retroh4ck-prober
+
+jobs:
+  bench:
+    name: Smoke + bench (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry, git, and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bench-
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Record binary size
+        id: size
+        run: |
+          BIN="target/release/${BINARY_NAME}"
+          if [ ! -f "${BIN}" ]; then
+            echo "Binary missing at ${BIN}" >&2
+            exit 1
+          fi
+          BYTES=$(stat -c %s "${BIN}")
+          HUMAN=$(du -h "${BIN}" | cut -f1)
+          echo "bytes=${BYTES}" >> "${GITHUB_OUTPUT}"
+          echo "human=${HUMAN}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run integration smoke test
+        id: smoke
+        run: |
+          START=$(date +%s%3N)
+          # The integration_smoke.rs target spins up a local hyper mock
+          # and asserts the JSONL output shape. If the test file is not
+          # present yet, skip without failing the workflow so this is
+          # useful in early development.
+          if grep -RIl --include='*.rs' 'integration_smoke' tests 2>/dev/null; then
+            cargo test --release --test integration_smoke -- --nocapture | tee smoke.log
+          else
+            echo "tests/integration_smoke.rs not yet present — skipping smoke." | tee smoke.log
+          fi
+          END=$(date +%s%3N)
+          DURATION_MS=$((END - START))
+          echo "duration_ms=${DURATION_MS}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run cargo bench (if benches exist)
+        id: bench
+        run: |
+          if [ -d benches ] && find benches -maxdepth 2 -name '*.rs' | grep -q .; then
+            cargo bench --no-fail-fast 2>&1 | tee bench.log
+            echo "bench_ran=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "No benches/ directory — skipping cargo bench." | tee bench.log
+            echo "bench_ran=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Publish job summary
+        run: |
+          {
+            echo "## retroh4ck-prober bench run"
+            echo ""
+            echo "**Trigger notes:** ${{ inputs.notes }}"
+            echo ""
+            echo "### Binary"
+            echo ""
+            echo "- size: \`${{ steps.size.outputs.human }}\` (${{ steps.size.outputs.bytes }} bytes)"
+            echo ""
+            echo "### Integration smoke"
+            echo ""
+            echo "- duration: \`${{ steps.smoke.outputs.duration_ms }} ms\`"
+            echo ""
+            if [ -f smoke.log ]; then
+              echo "<details><summary>smoke.log (tail)</summary>"
+              echo ""
+              echo '```'
+              tail -n 80 smoke.log
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+            echo ""
+            echo "### cargo bench"
+            echo ""
+            echo "- ran: \`${{ steps.bench.outputs.bench_ran }}\`"
+            echo ""
+            if [ -f bench.log ]; then
+              echo "<details><summary>bench.log (tail)</summary>"
+              echo ""
+              echo '```'
+              tail -n 100 bench.log
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload bench logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-logs
+          path: |
+            smoke.log
+            bench.log
+          if-no-files-found: ignore
+          retention-days: 14

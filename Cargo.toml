@@ -1,0 +1,42 @@
+[package]
+name = "retroh4ck-prober"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0"
+description = "Async directory/path prober with TLS-fingerprint impersonation (drop-in httpx replacement)"
+repository = "https://github.com/assassin-marcos/retroh4ck-prober"
+
+[dependencies]
+# wreq 5.3 is the latest stable line (6.x was RC-only as of build).
+# 5.3 still provides the full Emulation enum + ClientBuilder API the SPEC calls for.
+wreq = "5.3"
+wreq-util = "2.2"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "brotli", "stream"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "time", "sync", "signal"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+md-5 = "0.10"
+hex = "0.4"
+rand = "0.8"
+futures = "0.3"
+anyhow = "1"
+url = "2"
+regex = "1"
+chrono = { version = "0.4", features = ["serde"] }
+governor = "0.6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+bytes = "1"
+
+[dev-dependencies]
+hyper = { version = "0.14", features = ["server", "http1", "tcp"] }
+tokio = { version = "1", features = ["full"] }
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
